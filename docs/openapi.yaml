@@ -20,6 +20,21 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Author"
+    put:
+      summary: 著者の更新
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthorUpdate"
+      responses:
+        "200":
+          description: 著者を更新しました
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Author"
 
   /authors/{authorId}/books:
     get:
@@ -99,6 +114,21 @@ components:
           type: string
           format: date
       required:
+        - name
+        - birthDate
+
+    AuthorUpdate:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        birthDate:
+          type: string
+          format: date
+      required:
+        - id
         - name
         - birthDate
 
