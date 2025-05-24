@@ -1,6 +1,8 @@
 package com.libratrack.controller
 
+import com.libratrack.dto.Author
 import com.libratrack.dto.AuthorInput
+import com.libratrack.dto.AuthorUpdate
 import com.libratrack.dto.Book
 import com.libratrack.service.AuthorService
 import com.libratrack.service.BookService
@@ -18,6 +20,12 @@ class AuthorController(
     fun createAuthor(@RequestBody authorInput: AuthorInput): ResponseEntity<Int> {
         val authorId = authorService.createAuthor(authorInput)
         return ResponseEntity.ok(authorId)
+    }
+
+    @PutMapping
+    fun updateAuthor(@RequestBody authorUpdate: AuthorUpdate): ResponseEntity<Author> {
+        val author = authorService.updateAuthor(authorUpdate)
+        return ResponseEntity.ok(author)
     }
 
     @GetMapping("/{authorId}/books")

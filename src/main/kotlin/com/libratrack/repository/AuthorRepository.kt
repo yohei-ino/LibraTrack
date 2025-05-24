@@ -1,20 +1,54 @@
 package com.libratrack.repository
 
+import com.libratrack.dto.Author
 import com.libratrack.dto.AuthorInput
+import com.libratrack.dto.AuthorUpdate
 import com.libratrack.jooq.tables.Authors
 import com.libratrack.jooq.tables.records.AuthorsRecord
 import org.jooq.DSLContext
 import org.springframework.stereotype.Repository
+import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
 
 @Repository
 class AuthorRepository(private val dslContext: DSLContext) {
 
+    @Transactional
     fun save(authorInput: AuthorInput): Int {
-        val record = dslContext.newRecord(Authors.AUTHORS)
-        record.name = authorInput.name
-        record.birthDate = LocalDate.parse(authorInput.birthDate)
-        record.store()
-        return record.id!!
+        val authorRecord = dslContext.newRecord(Authors.AUTHORS)
+        authorRecord.name = authorInput.name
+        authorRecord.birthDate = LocalDate.parse(authorInput.birthDate)
+        authorRecord.store()
+        return authorRecord.id!!
+    }
+
+    @Transactional
+    fun update(authorUpdate: AuthorUpdate): Author {
+        val authors = Authors.AUTHORS
+
+        // 著者情報を更新
+        val authorRecord = dslContext.newRecord(authors)
+        authorRecord.id = authorUpdate.id
+        authorRecord.name = authorUpdate.name
+        authorRecord.birthDate = authorUpdate.birthDate
+        authorRecord.update()
+
+        // 更新後の著者情報を取得
+        return dslContext.select(
+            authors.ID,
+            authors.NAME,
+            authors.BIRTH_DATE
+        )
+            .from(authors)
+            .where(authors.ID.eq(authorUpdate.id))
+            .fetchOne()
+            ?.let {
+                Author(
+                    id = it.get(authors.ID)!!,
+                    name = it.get(authors.NAME)!!,
+                    birthDate = it.get(authors.BIRTH_DATE)!!.toString()
+                )
+            }
+            ?: throw IllegalStateException("Author not found with id: ${authorUpdate.id}")
     }
 } 
