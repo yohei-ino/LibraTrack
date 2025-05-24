@@ -1,0 +1,174 @@
+openapi: 3.0.0
+info:
+  title: 書籍管理システム API
+  version: 1.0.0
+
+paths:
+  /authors:
+    post:
+      summary: 著者の作成
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthorInput"
+      responses:
+        "201":
+          description: 著者を作成しました
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Author"
+
+  /authors/{authorId}/books:
+    get:
+      summary: 著者に紐づく書籍の取得
+      parameters:
+        - name: authorId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: 書籍リスト
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Book"
+
+  /books:
+    post:
+      summary: 書籍の作成
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookInput"
+      responses:
+        "201":
+          description: 書籍を作成しました
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Book"
+
+    put:
+      summary: 書籍の更新
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookUpdate"
+      responses:
+        "200":
+          description: 書籍を更新しました
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Book"
+
+components:
+  schemas:
+    Author:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        birthDate:
+          type: string
+          format: date
+      required:
+        - id
+        - name
+        - birthDate
+
+    AuthorInput:
+      type: object
+      properties:
+        name:
+          type: string
+        birthDate:
+          type: string
+          format: date
+      required:
+        - name
+        - birthDate
+
+    Book:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        price:
+          type: number
+          minimum: 0
+        status:
+          type: string
+          enum: [unpublished, published]
+        authors:
+          type: array
+          items:
+            $ref: "#/components/schemas/Author"
+      required:
+        - id
+        - title
+        - price
+        - status
+        - authors
+
+    BookInput:
+      type: object
+      properties:
+        title:
+          type: string
+        price:
+          type: number
+          minimum: 0
+        status:
+          type: string
+          enum: [unpublished, published]
+        authorIds:
+          type: array
+          items:
+            type: integer
+          minItems: 1
+      required:
+        - title
+        - price
+        - status
+        - authorIds
+
+    BookUpdate:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        price:
+          type: number
+          minimum: 0
+        status:
+          type: string
+          enum: [unpublished, published]
+        authorIds:
+          type: array
+          items:
+            type: integer
+          minItems: 1
+      required:
+        - id
+        - title
+        - price
+        - status
+        - authorIds
