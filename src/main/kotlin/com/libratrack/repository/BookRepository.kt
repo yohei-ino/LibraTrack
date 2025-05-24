@@ -3,6 +3,7 @@ package com.libratrack.repository
 import com.libratrack.dto.Author
 import com.libratrack.dto.Book
 import com.libratrack.dto.BookInput
+import com.libratrack.dto.BookUpdate
 import com.libratrack.jooq.tables.Books
 import com.libratrack.jooq.tables.BookAuthors
 import com.libratrack.jooq.tables.Authors
@@ -32,6 +33,71 @@ class BookRepository(private val dslContext: DSLContext) {
         }
 
         return bookRecord.id!!
+    }
+
+    @Transactional
+    fun update(bookUpdate: BookUpdate): Book {
+        val books = Books.BOOKS
+        val bookAuthors = BookAuthors.BOOK_AUTHORS
+        val authors = Authors.AUTHORS
+
+        // 書籍情報を更新
+        val bookRecord = dslContext.newRecord(books)
+        bookRecord.id = bookUpdate.id
+        bookRecord.title = bookUpdate.title
+        bookRecord.price = bookUpdate.price
+        bookRecord.status = bookUpdate.status
+        bookRecord.update()
+
+        // 既存の著者との関連付けを削除
+        dslContext.deleteFrom(bookAuthors)
+            .where(bookAuthors.BOOK_ID.eq(bookUpdate.id))
+            .execute()
+
+        // 新しい著者との関連付けを保存
+        bookUpdate.authorIds.forEach { authorId ->
+            val bookAuthorRecord = dslContext.newRecord(bookAuthors)
+            bookAuthorRecord.bookId = bookUpdate.id
+            bookAuthorRecord.authorId = authorId
+            bookAuthorRecord.store()
+        }
+
+        // 更新後の書籍情報を取得
+        return dslContext.select(
+            books.ID,
+            books.TITLE,
+            books.PRICE,
+            books.STATUS,
+            authors.ID,
+            authors.NAME,
+            authors.BIRTH_DATE
+        )
+            .from(books)
+            .leftJoin(bookAuthors).on(books.ID.eq(bookAuthors.BOOK_ID))
+            .leftJoin(authors).on(bookAuthors.AUTHOR_ID.eq(authors.ID))
+            .where(books.ID.eq(bookUpdate.id))
+            .fetch()
+            .groupBy { it.get(books.ID) }
+            .map { (_, records) ->
+                val first = records.first()
+                Book(
+                    id = first.get(books.ID)!!,
+                    title = first.get(books.TITLE)!!,
+                    price = first.get(books.PRICE)!!,
+                    status = first.get(books.STATUS)!!,
+                    authors = records.mapNotNull {
+                        val authorId = it.get(authors.ID)
+                        if (authorId != null) {
+                            Author(
+                                id = authorId,
+                                name = it.get(authors.NAME)!!,
+                                birthDate = it.get(authors.BIRTH_DATE)!!.toString()
+                            )
+                        } else null
+                    }
+                )
+            }
+            .first()
     }
 
     fun findByAuthorId(authorId: Int): List<Book> {
