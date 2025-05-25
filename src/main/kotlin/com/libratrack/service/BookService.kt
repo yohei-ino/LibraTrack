@@ -17,6 +17,13 @@ class BookService(private val bookRepository: BookRepository) {
 
     @Transactional
     fun updateBook(bookUpdate: BookUpdate): Book {
+        val currentBook = bookRepository.findById(bookUpdate.id)
+            ?: throw IllegalArgumentException("書籍が見つかりません")
+
+        if (currentBook.status == "published" && bookUpdate.status == "unpublished") {
+            throw IllegalArgumentException("出版済みの書籍を未出版に変更することはできません")
+        }
+
         return bookRepository.update(bookUpdate)
     }
 

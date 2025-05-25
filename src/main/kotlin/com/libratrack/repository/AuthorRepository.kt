@@ -17,7 +17,7 @@ class AuthorRepository(private val dslContext: DSLContext) {
     fun save(authorInput: AuthorInput): Int {
         val authorRecord = dslContext.newRecord(Authors.AUTHORS)
         authorRecord.name = authorInput.name
-        authorRecord.birthDate = LocalDate.parse(authorInput.birthDate)
+        authorRecord.birthDate = authorInput.birthDate
         authorRecord.store()
         return authorRecord.id!!
     }
