@@ -12,9 +12,9 @@ import org.springframework.web.bind.annotation.*
 class BookController(private val bookService: BookService) {
 
     @PostMapping
-    fun createBook(@RequestBody bookInput: BookInput): ResponseEntity<Int> {
-        val bookId = bookService.createBook(bookInput)
-        return ResponseEntity.ok(bookId)
+    fun createBook(@RequestBody bookInput: BookInput): ResponseEntity<Book> {
+        val book = bookService.createBook(bookInput)
+        return ResponseEntity.ok(book)
     }
 
     @PutMapping

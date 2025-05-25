@@ -11,8 +11,9 @@ import org.springframework.transaction.annotation.Transactional
 class BookService(private val bookRepository: BookRepository) {
 
     @Transactional
-    fun createBook(bookInput: BookInput): Int {
-        return bookRepository.save(bookInput)
+    fun createBook(bookInput: BookInput): Book {
+        val bookId = bookRepository.save(bookInput)
+        return bookRepository.findById(bookId) ?: throw IllegalStateException("書籍情報の取得に失敗しました")
     }
 
     @Transactional
