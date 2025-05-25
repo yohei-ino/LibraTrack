@@ -70,4 +70,13 @@ class AuthorRepository(private val dslContext: DSLContext) {
                 )
             }
     }
+
+    fun existsById(id: Int): Boolean {
+        val authors = Authors.AUTHORS
+        return dslContext.selectCount()
+            .from(authors)
+            .where(authors.ID.eq(id))
+            .fetchOne(0, Int::class.java)
+            ?.let { it > 0 } ?: false
+    }
 } 
