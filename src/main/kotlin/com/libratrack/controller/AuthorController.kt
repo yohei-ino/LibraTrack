@@ -7,23 +7,26 @@ import com.libratrack.dto.Book
 import com.libratrack.service.AuthorService
 import com.libratrack.service.BookService
 import org.springframework.http.ResponseEntity
+import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.*
+import jakarta.validation.Valid
 
 @RestController
 @RequestMapping("/authors")
+@Validated
 class AuthorController(
     private val authorService: AuthorService,
     private val bookService: BookService
 ) {
 
     @PostMapping
-    fun createAuthor(@RequestBody authorInput: AuthorInput): ResponseEntity<Author> {
+    fun createAuthor(@Valid @RequestBody authorInput: AuthorInput): ResponseEntity<Author> {
         val author = authorService.createAuthor(authorInput)
         return ResponseEntity.ok(author)
     }
 
     @PutMapping
-    fun updateAuthor(@RequestBody authorUpdate: AuthorUpdate): ResponseEntity<Author> {
+    fun updateAuthor(@Valid @RequestBody authorUpdate: AuthorUpdate): ResponseEntity<Author> {
         val author = authorService.updateAuthor(authorUpdate)
         return ResponseEntity.ok(author)
     }
