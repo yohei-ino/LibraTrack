@@ -51,4 +51,23 @@ class AuthorRepository(private val dslContext: DSLContext) {
             }
             ?: throw IllegalStateException("Author not found with id: ${authorUpdate.id}")
     }
+
+    fun findById(id: Int): Author? {
+        val authors = Authors.AUTHORS
+        return dslContext.select(
+            authors.ID,
+            authors.NAME,
+            authors.BIRTH_DATE
+        )
+            .from(authors)
+            .where(authors.ID.eq(id))
+            .fetchOne()
+            ?.let {
+                Author(
+                    id = it.get(authors.ID)!!,
+                    name = it.get(authors.NAME)!!,
+                    birthDate = it.get(authors.BIRTH_DATE)!!.toString()
+                )
+            }
+    }
 } 

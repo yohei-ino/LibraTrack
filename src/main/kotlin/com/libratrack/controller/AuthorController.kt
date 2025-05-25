@@ -17,9 +17,9 @@ class AuthorController(
 ) {
 
     @PostMapping
-    fun createAuthor(@RequestBody authorInput: AuthorInput): ResponseEntity<Int> {
-        val authorId = authorService.createAuthor(authorInput)
-        return ResponseEntity.ok(authorId)
+    fun createAuthor(@RequestBody authorInput: AuthorInput): ResponseEntity<Author> {
+        val author = authorService.createAuthor(authorInput)
+        return ResponseEntity.ok(author)
     }
 
     @PutMapping

@@ -11,8 +11,9 @@ import org.springframework.transaction.annotation.Transactional
 class AuthorService(private val authorRepository: AuthorRepository) {
 
     @Transactional
-    fun createAuthor(authorInput: AuthorInput): Int {
-        return authorRepository.save(authorInput)
+    fun createAuthor(authorInput: AuthorInput): Author {
+        val authorId = authorRepository.save(authorInput)
+        return authorRepository.findById(authorId) ?: throw IllegalStateException("著者情報の取得に失敗しました")
     }
 
     @Transactional
