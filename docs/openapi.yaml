@@ -61,7 +61,7 @@ paths:
 
   /authors/{authorId}/books:
     get:
-      summary: 著者の書籍一覧取得
+      summary: 著者の書籍一覧を取得
       parameters:
         - name: authorId
           in: path
@@ -70,14 +70,14 @@ paths:
             type: integer
       responses:
         "200":
-          description: 書籍一覧
+          description: 成功
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: "#/components/schemas/Book"
-        "400":
+        "404":
           description: 著者が存在しない
           content:
             application/json:
