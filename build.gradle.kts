@@ -57,7 +57,7 @@ jooq {
                         inputSchema = "public"
                         properties.add(Property().apply {
                             key = "rootPath"
-                            value = "src/main/resources"
+                            value = "src/main/resources/db/migration"
                         })
                     }
                     generate.apply {
@@ -65,6 +65,9 @@ jooq {
                         isRecords = true
                         isImmutablePojos = true
                         isFluentSetters = true
+                        isPojos = true
+                        isPojosEqualsAndHashCode = true
+                        isPojosToString = true
                     }
                     target.apply {
                         packageName = "com.libratrack.jooq"
