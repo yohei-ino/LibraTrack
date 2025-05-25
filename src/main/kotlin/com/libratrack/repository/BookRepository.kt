@@ -35,6 +35,48 @@ class BookRepository(private val dslContext: DSLContext) {
         return bookRecord.id!!
     }
 
+    fun findById(id: Int): Book? {
+        val books = Books.BOOKS
+        val bookAuthors = BookAuthors.BOOK_AUTHORS
+        val authors = Authors.AUTHORS
+
+        return dslContext.select(
+            books.ID,
+            books.TITLE,
+            books.PRICE,
+            books.STATUS,
+            authors.ID,
+            authors.NAME,
+            authors.BIRTH_DATE
+        )
+            .from(books)
+            .leftJoin(bookAuthors).on(books.ID.eq(bookAuthors.BOOK_ID))
+            .leftJoin(authors).on(bookAuthors.AUTHOR_ID.eq(authors.ID))
+            .where(books.ID.eq(id))
+            .fetch()
+            .groupBy { it.get(books.ID) }
+            .map { (_, records) ->
+                val first = records.first()
+                Book(
+                    id = first.get(books.ID)!!,
+                    title = first.get(books.TITLE)!!,
+                    price = first.get(books.PRICE)!!,
+                    status = first.get(books.STATUS)!!,
+                    authors = records.mapNotNull {
+                        val authorId = it.get(authors.ID)
+                        if (authorId != null) {
+                            Author(
+                                id = authorId,
+                                name = it.get(authors.NAME)!!,
+                                birthDate = it.get(authors.BIRTH_DATE)!!.toString()
+                            )
+                        } else null
+                    }
+                )
+            }
+            .firstOrNull()
+    }
+
     @Transactional
     fun update(bookUpdate: BookUpdate): Book {
         val books = Books.BOOKS
