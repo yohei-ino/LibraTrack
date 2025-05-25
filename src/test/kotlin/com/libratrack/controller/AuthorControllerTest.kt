@@ -1,12 +1,45 @@
 package com.libratrack.controller
 
+import com.libratrack.util.TestDataManager
+import org.jooq.DSLContext
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.test.context.ActiveProfiles
+import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers
+import com.fasterxml.jackson.databind.ObjectMapper
 import org.junit.jupiter.api.Test
-import org.springframework.http.MediaType
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
 import java.time.LocalDate
 
-class AuthorControllerTest : ApiTestBase() {
+@SpringBootTest
+@AutoConfigureMockMvc
+@ActiveProfiles("test")
+class AuthorControllerTest {
+    @Autowired
+    private lateinit var mockMvc: MockMvc
+
+    @Autowired
+    private lateinit var dslContext: DSLContext
+
+    @Autowired
+    private lateinit var objectMapper: ObjectMapper
+
+    private lateinit var testDataManager: TestDataManager
+
+    @BeforeEach
+    fun setup() {
+        testDataManager = TestDataManager(dslContext)
+        testDataManager.cleanupAllTables()
+    }
+
+    @AfterEach
+    fun cleanup() {
+        testDataManager.cleanupAllTables()
+    }
 
     @Test
     fun `著者登録が成功すること`() {
@@ -16,13 +49,13 @@ class AuthorControllerTest : ApiTestBase() {
         )
 
         mockMvc.perform(
-            post("/authors")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(toJson(request))
+            MockMvcRequestBuilders.post("/authors")
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(request))
         )
-            .andExpect(status().isOk)
-            .andExpect(jsonPath("$.name").value("テスト著者"))
-            .andExpect(jsonPath("$.birthDate").value("1990-01-01"))
+            .andExpect(MockMvcResultMatchers.status().isOk)
+            .andExpect(MockMvcResultMatchers.jsonPath("$.name").value("テスト著者"))
+            .andExpect(MockMvcResultMatchers.jsonPath("$.birthDate").value("1990-01-01"))
     }
 
     @Test
@@ -33,82 +66,70 @@ class AuthorControllerTest : ApiTestBase() {
         )
 
         mockMvc.perform(
-            post("/authors")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(toJson(request))
+            MockMvcRequestBuilders.post("/authors")
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(request))
         )
-            .andExpect(status().isBadRequest)
-            .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
-            .andExpect(jsonPath("$.message").value("名前は必須です"))
+            .andExpect(MockMvcResultMatchers.status().isBadRequest)
+            .andExpect(MockMvcResultMatchers.jsonPath("$.code").value("VALIDATION_ERROR"))
+            .andExpect(MockMvcResultMatchers.jsonPath("$.message").value("名前は必須です"))
     }
 
     @Test
     fun `生年月日が未来の日付の場合エラーになること`() {
-        val futureDate = LocalDate.now().plusDays(1).toString()
         val request = mapOf(
             "name" to "テスト著者",
-            "birthDate" to futureDate
+            "birthDate" to "2100-01-01"
         )
 
         mockMvc.perform(
-            post("/authors")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(toJson(request))
+            MockMvcRequestBuilders.post("/authors")
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(request))
         )
-            .andExpect(status().isBadRequest)
-            .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
-            .andExpect(jsonPath("$.message").value("生年月日は過去の日付である必要があります"))
+            .andExpect(MockMvcResultMatchers.status().isBadRequest)
+            .andExpect(MockMvcResultMatchers.jsonPath("$.code").value("VALIDATION_ERROR"))
+            .andExpect(MockMvcResultMatchers.jsonPath("$.message").value("生年月日は過去の日付である必要があります"))
     }
 
     @Test
-    fun `著者情報の更新が成功すること`() {
-        // まず著者を登録
-        val createRequest = mapOf(
-            "name" to "テスト著者",
-            "birthDate" to "1990-01-01"
-        )
-
-        val response = mockMvc.perform(
-            post("/authors")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(toJson(createRequest))
-        )
-            .andExpect(status().isOk)
-            .andReturn()
-
-        val authorId = objectMapper.readTree(response.response.contentAsString).get("id").asInt()
-
-        // 著者情報を更新
-        val updateRequest = mapOf(
+    fun `著者更新が成功すること`() {
+        // テスト用の著者を作成
+        val authorId = testDataManager.createAuthor()
+        
+        val request = mapOf(
             "id" to authorId,
-            "name" to "更新テスト著者",
-            "birthDate" to "1990-01-01"
+            "name" to "更新後の名前",
+            "birthDate" to "1991-01-01"
         )
 
         mockMvc.perform(
-            put("/authors")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(toJson(updateRequest))
+            MockMvcRequestBuilders.put("/authors")
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(request))
         )
-            .andExpect(status().isOk)
-            .andExpect(jsonPath("$.name").value("更新テスト著者"))
+            .andExpect(MockMvcResultMatchers.status().isOk)
+            .andExpect(MockMvcResultMatchers.jsonPath("$.name").value("更新後の名前"))
+            .andExpect(MockMvcResultMatchers.jsonPath("$.birthDate").value("1991-01-01"))
     }
 
     @Test
     fun `存在しない著者IDで更新しようとするとエラーになること`() {
+        val nonExistentAuthorId = testDataManager.getNonExistentAuthorId()
+        
         val request = mapOf(
-            "id" to 999,
-            "name" to "更新テスト著者",
+            "id" to nonExistentAuthorId,
+            "name" to "更新テスト",
             "birthDate" to "1990-01-01"
         )
 
         mockMvc.perform(
-            put("/authors")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(toJson(request))
+            MockMvcRequestBuilders.put("/authors")
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(request))
         )
-            .andExpect(status().isNotFound)
-            .andExpect(jsonPath("$.code").value("AUTHOR_NOT_FOUND"))
-            .andExpect(jsonPath("$.message").value("著者ID 999 は存在しません"))
+            .andExpect(MockMvcResultMatchers.status().isNotFound)
+            .andExpect(MockMvcResultMatchers.jsonPath("$.code").value("AUTHOR_NOT_FOUND"))
+            .andExpect(MockMvcResultMatchers.jsonPath("$.message").value("著者ID $nonExistentAuthorId は存在しません"))
     }
 } 
