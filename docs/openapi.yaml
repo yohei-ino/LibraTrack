@@ -1,12 +1,17 @@
-openapi: 3.0.0
+openapi: 3.0.3
 info:
-  title: 書籍管理システム API
-  version: 1.0.0
+  title: Libratrack API
+  version: "1.0"
+  description: |
+    書籍・著者管理API。バリデーション・エラーハンドリング仕様も反映。
+
+servers:
+  - url: http://localhost:8080
 
 paths:
   /authors:
     post:
-      summary: 著者の作成
+      summary: 著者登録
       requestBody:
         required: true
         content:
@@ -14,14 +19,20 @@ paths:
             schema:
               $ref: "#/components/schemas/AuthorInput"
       responses:
-        "201":
-          description: 著者を作成しました
+        "200":
+          description: 登録成功
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Author"
+        "400":
+          description: バリデーションエラー
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
     put:
-      summary: 著者の更新
+      summary: 著者情報更新
       requestBody:
         required: true
         content:
@@ -30,15 +41,27 @@ paths:
               $ref: "#/components/schemas/AuthorUpdate"
       responses:
         "200":
-          description: 著者を更新しました
+          description: 更新成功
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Author"
+        "404":
+          description: 著者が存在しない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "400":
+          description: バリデーションエラー
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /authors/{authorId}/books:
     get:
-      summary: 著者に紐づく書籍の取得
+      summary: 著者の書籍一覧取得
       parameters:
         - name: authorId
           in: path
@@ -47,17 +70,23 @@ paths:
             type: integer
       responses:
         "200":
-          description: 書籍リスト
+          description: 書籍一覧
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: "#/components/schemas/Book"
+        "400":
+          description: 著者が存在しない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /books:
     post:
-      summary: 書籍の作成
+      summary: 書籍登録
       requestBody:
         required: true
         content:
@@ -65,15 +94,20 @@ paths:
             schema:
               $ref: "#/components/schemas/BookInput"
       responses:
-        "201":
-          description: 書籍を作成しました
+        "200":
+          description: 登録成功
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Book"
-
+        "400":
+          description: バリデーションエラーまたは著者ID不正
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
     put:
-      summary: 書籍の更新
+      summary: 書籍情報更新
       requestBody:
         required: true
         content:
@@ -82,14 +116,50 @@ paths:
               $ref: "#/components/schemas/BookUpdate"
       responses:
         "200":
-          description: 書籍を更新しました
+          description: 更新成功
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Book"
+        "404":
+          description: 書籍が存在しない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "400":
+          description: バリデーションエラー・著者ID不正・出版済み→未出版変更
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
 components:
   schemas:
+    AuthorInput:
+      type: object
+      required: [name, birthDate]
+      properties:
+        name:
+          type: string
+          description: 著者名
+          minLength: 1
+        birthDate:
+          type: string
+          format: date
+          description: 生年月日（過去日付のみ許可）
+    AuthorUpdate:
+      type: object
+      required: [id, name, birthDate]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+          minLength: 1
+        birthDate:
+          type: string
+          format: date
     Author:
       type: object
       properties:
@@ -100,38 +170,44 @@ components:
         birthDate:
           type: string
           format: date
-      required:
-        - id
-        - name
-        - birthDate
-
-    AuthorInput:
+    BookInput:
       type: object
+      required: [title, price, status, authorIds]
       properties:
-        name:
+        title:
           type: string
-        birthDate:
+          minLength: 1
+        price:
+          type: number
+          minimum: 0
+        status:
           type: string
-          format: date
-      required:
-        - name
-        - birthDate
-
-    AuthorUpdate:
+          enum: [unpublished, published]
+        authorIds:
+          type: array
+          items:
+            type: integer
+          minItems: 1
+    BookUpdate:
       type: object
+      required: [id, title, price, status, authorIds]
       properties:
         id:
           type: integer
-        name:
+        title:
           type: string
-        birthDate:
+          minLength: 1
+        price:
+          type: number
+          minimum: 0
+        status:
           type: string
-          format: date
-      required:
-        - id
-        - name
-        - birthDate
-
+          enum: [unpublished, published]
+        authorIds:
+          type: array
+          items:
+            type: integer
+          minItems: 1
     Book:
       type: object
       properties:
@@ -141,64 +217,16 @@ components:
           type: string
         price:
           type: number
-          minimum: 0
         status:
           type: string
-          enum: [unpublished, published]
         authors:
           type: array
           items:
             $ref: "#/components/schemas/Author"
-      required:
-        - id
-        - title
-        - price
-        - status
-        - authors
-
-    BookInput:
+    ErrorResponse:
       type: object
       properties:
-        title:
+        code:
           type: string
-        price:
-          type: number
-          minimum: 0
-        status:
+        message:
           type: string
-          enum: [unpublished, published]
-        authorIds:
-          type: array
-          items:
-            type: integer
-          minItems: 1
-      required:
-        - title
-        - price
-        - status
-        - authorIds
-
-    BookUpdate:
-      type: object
-      properties:
-        id:
-          type: integer
-        title:
-          type: string
-        price:
-          type: number
-          minimum: 0
-        status:
-          type: string
-          enum: [unpublished, published]
-        authorIds:
-          type: array
-          items:
-            type: integer
-          minItems: 1
-      required:
-        - id
-        - title
-        - price
-        - status
-        - authorIds
