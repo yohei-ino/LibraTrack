@@ -88,7 +88,7 @@ class BookRepository(private val dslContext: DSLContext) {
         return dslContext.selectCount()
             .from(Books.BOOKS)
             .where(Books.BOOKS.TITLE.eq(title))
-            .fetchOne(0, Int::class.java) > 0
+            .fetchOne(0, Int::class.java)?.let { it > 0 } ?: false
     }
 
     fun findById(id: Int): Book? {

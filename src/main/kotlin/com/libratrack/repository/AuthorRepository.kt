@@ -38,7 +38,7 @@ class AuthorRepository(private val dslContext: DSLContext) {
             .from(Authors.AUTHORS)
             .where(Authors.AUTHORS.NAME.eq(name))
             .and(Authors.AUTHORS.BIRTH_DATE.eq(birthDate))
-            .fetchOne(0, Int::class.java) > 0
+            .fetchOne(0, Int::class.java)?.let { it > 0 } ?: false
     }
 
     @Transactional
