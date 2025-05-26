@@ -9,17 +9,36 @@ import org.jooq.DSLContext
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
+import org.springframework.http.HttpStatus
+import com.libratrack.exception.BusinessException
 
 @Repository
 class AuthorRepository(private val dslContext: DSLContext) {
 
     @Transactional
     fun save(authorInput: AuthorInput): Int {
+        // 重複チェック
+        if (existsByNameAndBirthDate(authorInput.name, authorInput.birthDate)) {
+            throw BusinessException(
+                "DUPLICATE_AUTHOR",
+                HttpStatus.BAD_REQUEST,
+                "同じ名前・生年月日の著者が既に存在します"
+            )
+        }
+
         val authorRecord = dslContext.newRecord(Authors.AUTHORS)
         authorRecord.name = authorInput.name
         authorRecord.birthDate = authorInput.birthDate
         authorRecord.store()
         return authorRecord.id!!
+    }
+
+    fun existsByNameAndBirthDate(name: String, birthDate: LocalDate): Boolean {
+        return dslContext.selectCount()
+            .from(Authors.AUTHORS)
+            .where(Authors.AUTHORS.NAME.eq(name))
+            .and(Authors.AUTHORS.BIRTH_DATE.eq(birthDate))
+            .fetchOne(0, Int::class.java) > 0
     }
 
     @Transactional
