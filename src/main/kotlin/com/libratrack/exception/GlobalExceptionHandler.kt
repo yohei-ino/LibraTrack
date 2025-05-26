@@ -18,12 +18,10 @@ class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException::class)
     fun handleValidationException(ex: MethodArgumentNotValidException): ResponseEntity<ErrorResponse> {
-        val errors = ex.bindingResult.fieldErrors.map { 
-            "${it.field}: ${it.defaultMessage}" 
-        }.joinToString(", ")
+        val firstError = ex.bindingResult.fieldErrors.firstOrNull()?.defaultMessage ?: "バリデーションエラー"
         return ResponseEntity
             .status(HttpStatus.BAD_REQUEST)
-            .body(ErrorResponse("VALIDATION_ERROR", errors))
+            .body(ErrorResponse("VALIDATION_ERROR", firstError))
     }
 
     @ExceptionHandler(Exception::class)
