@@ -11,12 +11,24 @@ import org.jooq.DSLContext
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
+import org.springframework.http.HttpStatus
+import com.libratrack.exception.BusinessException
+import org.jooq.DSL
 
 @Repository
 class BookRepository(private val dslContext: DSLContext) {
 
     @Transactional
     fun save(bookInput: BookInput): Int {
+        // 重複チェック
+        if (existsByTitleAndAuthors(bookInput.title, bookInput.authorIds)) {
+            throw BusinessException(
+                "DUPLICATE_BOOK",
+                HttpStatus.BAD_REQUEST,
+                "同じタイトル・著者の組み合わせの書籍が既に存在します"
+            )
+        }
+
         // 書籍を保存
         val bookRecord = dslContext.newRecord(Books.BOOKS)
         bookRecord.title = bookInput.title
@@ -33,6 +45,50 @@ class BookRepository(private val dslContext: DSLContext) {
         }
 
         return bookRecord.id!!
+    }
+
+    fun existsByTitleAndAuthors(title: String, authorIds: List<Int>): Boolean {
+        val books = Books.BOOKS
+        val bookAuthors = BookAuthors.BOOK_AUTHORS
+
+        // 同じタイトルの書籍を取得
+        val bookIds = dslContext.select(books.ID)
+            .from(books)
+            .where(books.TITLE.eq(title))
+            .fetch(books.ID)
+
+        if (bookIds.isEmpty()) {
+            return false
+        }
+
+        // 各書籍の著者数を取得
+        val bookAuthorCounts = dslContext.select(bookAuthors.BOOK_ID, DSL.count())
+            .from(bookAuthors)
+            .where(bookAuthors.BOOK_ID.`in`(bookIds))
+            .groupBy(bookAuthors.BOOK_ID)
+            .fetchMap(bookAuthors.BOOK_ID, DSL.count())
+
+        // 著者数が一致する書籍のみを対象に、著者の組み合わせをチェック
+        return bookIds.any { bookId ->
+            val authorCount = bookAuthorCounts[bookId] ?: 0
+            if (authorCount != authorIds.size) {
+                false
+            } else {
+                // 著者の組み合わせが完全に一致するかチェック
+                val bookAuthorIds = dslContext.select(bookAuthors.AUTHOR_ID)
+                    .from(bookAuthors)
+                    .where(bookAuthors.BOOK_ID.eq(bookId))
+                    .fetch(bookAuthors.AUTHOR_ID)
+                bookAuthorIds.toSet() == authorIds.toSet()
+            }
+        }
+    }
+
+    fun existsByTitle(title: String): Boolean {
+        return dslContext.selectCount()
+            .from(Books.BOOKS)
+            .where(Books.BOOKS.TITLE.eq(title))
+            .fetchOne(0, Int::class.java) > 0
     }
 
     fun findById(id: Int): Book? {

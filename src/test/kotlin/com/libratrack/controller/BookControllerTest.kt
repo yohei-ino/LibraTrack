@@ -236,4 +236,116 @@ class BookControllerTest {
             .andExpect(MockMvcResultMatchers.jsonPath("$.code").value("AUTHOR_NOT_FOUND"))
             .andExpect(MockMvcResultMatchers.jsonPath("$.message").value("著者ID 999 は存在しません"))
     }
+
+    @Test
+    fun `同じタイトル・複数著者の組み合わせの書籍を登録しようとするとエラーになること`() {
+        // テスト用の著者を2人作成
+        val authorId1 = testDataManager.createAuthor(name = "著者1")
+        val authorId2 = testDataManager.createAuthor(name = "著者2")
+        
+        // 最初の書籍を登録（2人の著者）
+        val request = mapOf(
+            "title" to "テスト本",
+            "price" to 1000,
+            "status" to "unpublished",
+            "authorIds" to listOf(authorId1, authorId2)
+        )
+
+        mockMvc.perform(
+            MockMvcRequestBuilders.post("/books")
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(request))
+        )
+            .andExpect(MockMvcResultMatchers.status().isOk)
+
+        // 同じタイトル・著者の組み合わせの書籍を登録
+        mockMvc.perform(
+            MockMvcRequestBuilders.post("/books")
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(request))
+        )
+            .andExpect(MockMvcResultMatchers.status().isBadRequest)
+            .andExpect(MockMvcResultMatchers.jsonPath("$.code").value("DUPLICATE_BOOK"))
+            .andExpect(MockMvcResultMatchers.jsonPath("$.message").value("同じタイトル・著者の組み合わせの書籍が既に存在します"))
+    }
+
+    @Test
+    fun `同じタイトルで著者の順序が異なる場合も重複とみなされること`() {
+        // テスト用の著者を2人作成
+        val authorId1 = testDataManager.createAuthor(name = "著者1")
+        val authorId2 = testDataManager.createAuthor(name = "著者2")
+        
+        // 最初の書籍を登録
+        val request1 = mapOf(
+            "title" to "テスト本",
+            "price" to 1000,
+            "status" to "unpublished",
+            "authorIds" to listOf(authorId1, authorId2)
+        )
+
+        mockMvc.perform(
+            MockMvcRequestBuilders.post("/books")
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(request1))
+        )
+            .andExpect(MockMvcResultMatchers.status().isOk)
+
+        // 著者の順序を入れ替えて登録
+        val request2 = mapOf(
+            "title" to "テスト本",
+            "price" to 2000,
+            "status" to "unpublished",
+            "authorIds" to listOf(authorId2, authorId1)
+        )
+
+        mockMvc.perform(
+            MockMvcRequestBuilders.post("/books")
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(request2))
+        )
+            .andExpect(MockMvcResultMatchers.status().isBadRequest)
+            .andExpect(MockMvcResultMatchers.jsonPath("$.code").value("DUPLICATE_BOOK"))
+            .andExpect(MockMvcResultMatchers.jsonPath("$.message").value("同じタイトル・著者の組み合わせの書籍が既に存在します"))
+    }
+
+    @Test
+    fun `同じタイトルで一部の著者が異なる場合は登録できること`() {
+        // テスト用の著者を3人作成
+        val authorId1 = testDataManager.createAuthor(name = "著者1")
+        val authorId2 = testDataManager.createAuthor(name = "著者2")
+        val authorId3 = testDataManager.createAuthor(name = "著者3")
+        
+        // 最初の書籍を登録（著者1と2）
+        val request1 = mapOf(
+            "title" to "テスト本",
+            "price" to 1000,
+            "status" to "unpublished",
+            "authorIds" to listOf(authorId1, authorId2)
+        )
+
+        mockMvc.perform(
+            MockMvcRequestBuilders.post("/books")
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(request1))
+        )
+            .andExpect(MockMvcResultMatchers.status().isOk)
+
+        // 一部の著者が異なる書籍を登録（著者1と3）
+        val request2 = mapOf(
+            "title" to "テスト本",
+            "price" to 2000,
+            "status" to "unpublished",
+            "authorIds" to listOf(authorId1, authorId3)
+        )
+
+        mockMvc.perform(
+            MockMvcRequestBuilders.post("/books")
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(request2))
+        )
+            .andExpect(MockMvcResultMatchers.status().isOk)
+            .andExpect(MockMvcResultMatchers.jsonPath("$.title").value("テスト本"))
+            .andExpect(MockMvcResultMatchers.jsonPath("$.authors[0].id").value(authorId1))
+            .andExpect(MockMvcResultMatchers.jsonPath("$.authors[1].id").value(authorId3))
+    }
 } 

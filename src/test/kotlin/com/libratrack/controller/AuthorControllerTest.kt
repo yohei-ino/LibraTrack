@@ -132,4 +132,30 @@ class AuthorControllerTest {
             .andExpect(MockMvcResultMatchers.jsonPath("$.code").value("AUTHOR_NOT_FOUND"))
             .andExpect(MockMvcResultMatchers.jsonPath("$.message").value("著者ID $nonExistentAuthorId は存在しません"))
     }
+
+    @Test
+    fun `同じ名前・生年月日の著者を登録しようとするとエラーになること`() {
+        // 最初の著者を登録
+        val request = mapOf(
+            "name" to "テスト著者",
+            "birthDate" to "1990-01-01"
+        )
+
+        mockMvc.perform(
+            MockMvcRequestBuilders.post("/authors")
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(request))
+        )
+            .andExpect(MockMvcResultMatchers.status().isOk)
+
+        // 同じ名前・生年月日の著者を登録
+        mockMvc.perform(
+            MockMvcRequestBuilders.post("/authors")
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(request))
+        )
+            .andExpect(MockMvcResultMatchers.status().isBadRequest)
+            .andExpect(MockMvcResultMatchers.jsonPath("$.code").value("DUPLICATE_AUTHOR"))
+            .andExpect(MockMvcResultMatchers.jsonPath("$.message").value("同じ名前・生年月日の著者が既に存在します"))
+    }
 } 
