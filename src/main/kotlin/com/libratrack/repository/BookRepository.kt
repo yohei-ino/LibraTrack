@@ -13,7 +13,8 @@ import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
 import org.springframework.http.HttpStatus
 import com.libratrack.exception.BusinessException
-import org.jooq.DSL
+import org.jooq.Field
+import org.jooq.impl.DSL
 
 @Repository
 class BookRepository(private val dslContext: DSLContext) {
@@ -62,11 +63,12 @@ class BookRepository(private val dslContext: DSLContext) {
         }
 
         // 各書籍の著者数を取得
-        val bookAuthorCounts = dslContext.select(bookAuthors.BOOK_ID, DSL.count())
+        val countField: Field<Int> = DSL.field("count(*)", Int::class.java)
+        val bookAuthorCounts = dslContext.select(bookAuthors.BOOK_ID, countField)
             .from(bookAuthors)
             .where(bookAuthors.BOOK_ID.`in`(bookIds))
             .groupBy(bookAuthors.BOOK_ID)
-            .fetchMap(bookAuthors.BOOK_ID, DSL.count())
+            .fetchMap(bookAuthors.BOOK_ID, countField)
 
         // 著者数が一致する書籍のみを対象に、著者の組み合わせをチェック
         return bookIds.any { bookId ->
@@ -88,7 +90,7 @@ class BookRepository(private val dslContext: DSLContext) {
         return dslContext.selectCount()
             .from(Books.BOOKS)
             .where(Books.BOOKS.TITLE.eq(title))
-            .fetchOne(0, Int::class.java) > 0
+            .fetchOne(0, Int::class.java)?.let { it > 0 } ?: false
     }
 
     fun findById(id: Int): Book? {
