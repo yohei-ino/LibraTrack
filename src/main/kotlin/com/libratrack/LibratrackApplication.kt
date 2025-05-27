@@ -1,4 +1,4 @@
-package com.example.libratrack
+package com.libratrack
 
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
@@ -7,5 +7,5 @@ import org.springframework.boot.runApplication
 class LibratrackApplication
 
 fun main(args: Array<String>) {
-	runApplication<LibratrackApplication>(*args)
-}
+    runApplication<LibratrackApplication>(*args)
+} 
