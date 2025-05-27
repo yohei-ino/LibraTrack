@@ -185,6 +185,38 @@
    - エラーコード: "AUTHOR_NOT_FOUND"
    - エラーメッセージ: "著者ID 999 は存在しません"
 
+4. タイトルが空の場合
+   ```bash
+   curl -X PUT -H "Content-Type: application/json" -d '{"id": 1, "title": "", "price": 2000, "status": "published", "authorIds": [1]}' http://localhost:8080/books
+   ```
+   - 期待結果: 400 Bad Request
+   - エラーコード: "VALIDATION_ERROR"
+   - エラーメッセージ: "タイトルは必須です"
+
+5. 価格が負の数の場合
+   ```bash
+   curl -X PUT -H "Content-Type: application/json" -d '{"id": 1, "title": "更新テスト", "price": -2000, "status": "published", "authorIds": [1]}' http://localhost:8080/books
+   ```
+   - 期待結果: 400 Bad Request
+   - エラーコード: "VALIDATION_ERROR"
+   - エラーメッセージ: "価格は0以上である必要があります"
+
+6. ステータスが不正な場合
+   ```bash
+   curl -X PUT -H "Content-Type: application/json" -d '{"id": 1, "title": "更新テスト", "price": 2000, "status": "invalid_status", "authorIds": [1]}' http://localhost:8080/books
+   ```
+   - 期待結果: 400 Bad Request
+   - エラーコード: "VALIDATION_ERROR"
+   - エラーメッセージ: "ステータスはunpublishedまたはpublishedである必要があります"
+
+7. 著者IDが指定されていない場合
+   ```bash
+   curl -X PUT -H "Content-Type: application/json" -d '{"id": 1, "title": "更新テスト", "price": 2000, "status": "published", "authorIds": []}' http://localhost:8080/books
+   ```
+   - 期待結果: 400 Bad Request
+   - エラーコード: "VALIDATION_ERROR"
+   - エラーメッセージ: "著者は最低1人必要です"
+
 ## 5. 著者の書籍一覧取得（GET /authors/{authorId}/books）
 
 ### 正常系
